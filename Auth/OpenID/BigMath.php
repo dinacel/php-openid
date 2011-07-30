@@ -360,14 +360,30 @@ function Auth_OpenID_math_extensions()
 
 /**
  * Detect which (if any) math library is available
+ * Adapted from : http://sourcecookbook.com/en/recipes/60/janrain-s-php-openid-library-fixed-for-php-5-3-and-how-i-did-it
+ *
+ * You can define() a constant named 'Auth_OpenID_BigMathLibrary' which contain the name
+ * of the wished Library.
  */
-function Auth_OpenID_detectMathLibrary($exts)
-{
-    $loaded = false;
+function Auth_OpenID_detectMathLibrary($exts) {
+    // Bypass the search if the prefered library is defined
+    if ( defined( 'Auth_OpenID_BigMathLibrary') ) {
+        return Auth_OpenID_BigMathLibrary;
+    }
 
+    // See if the extension specified is already loaded.
     foreach ($exts as $extension) {
-        if (extension_loaded($extension['extension'])) {
-            return $extension;
+        if ($extension['extension'] && extension_loaded($extension['extension'])) {
+            return $extension;  // we don't need to continue the loop
+        }
+
+        // Try to load dynamic modules if dl exists and there is still not an available library ( implicit test )
+        if (function_exists( 'dl' ) ) {
+            foreach ($extension['modules'] as $module) {
+                if (@dl($module . "." . PHP_SHLIB_SUFFIX)) {
+                    return $extension;  // we don't need to continue the loop
+                }
+            }
         }
     }
 
